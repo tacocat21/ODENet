@@ -106,7 +106,7 @@ def inf_generator(iterable):
 
 
 
-def train_odenet(model, train_loader, train_eval_loader, test_loader, num_epochs, batch_size, lr, logger, save_dir, val_break_threshold=0.98):
+def train_odenet(model, train_loader, train_eval_loader, test_loader, num_epochs, batch_size, lr, logger, save_dir, val_break_threshold=0.98, optimizer_type='sgd'):
 
     logger.info(model)
     logger.info('Number of parameters: {}'.format(count_parameters(model)))
@@ -119,8 +119,10 @@ def train_odenet(model, train_loader, train_eval_loader, test_loader, num_epochs
         lr, batch_size, batch_denom=128, batches_per_epoch=batches_per_epoch, boundary_epochs=[60, 100, 140],
         decay_rates=[1, 0.1, 0.01, 0.001]
     )
-
-    optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
+    if optimizer_type == 'sgd':
+        optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
+    else:
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     best_acc = 0
     batch_time_meter = RunningAverageMeter()
     f_nfe_meter = RunningAverageMeter()
@@ -181,18 +183,21 @@ if __name__ == '__main__':
 
 
     dataset_name = 'cifar10'
+    # optimizer_type = 'sgd'
+    optimizer_type = 'adam'
     # dataset_name = 'mnist'
-    save_dir = './cache/{}'.format(dataset_name)
+    batch_size = 512
+    test_batch_size = 1000
+    lr = 0.0001
+    num_epochs = 180
+    train_batch_size = 128
+
+    save_dir = './cache/{}/{}/{}'.format(dataset_name, optimizer_type, lr)
     logpath =  os.path.join(save_dir, 'logs')
     if os.path.exists(logpath):
         os.remove(logpath)
 
-    batch_size = 512
-    test_batch_size = 1000
-    lr = 0.1
-    num_epochs = 180
-    train_batch_size = 128
-    
+
 
     if dataset_name == 'mnist':
         num_classes = 10
@@ -224,5 +229,6 @@ if __name__ == '__main__':
     batches_per_epoch = len(train_loader)
 
     train_odenet(model=model, train_loader=train_loader, train_eval_loader=train_eval_loader, test_loader=test_loader,
-                 num_epochs=num_epochs, batch_size=train_batch_size, lr=lr, logger=logger, save_dir=save_dir, val_break_threshold=val_break_threshold)
+                 num_epochs=num_epochs, batch_size=train_batch_size, lr=lr, logger=logger, save_dir=save_dir, val_break_threshold=val_break_threshold,
+                 optimizer_type=optimizer_type)
 
