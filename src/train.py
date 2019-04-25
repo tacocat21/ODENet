@@ -1,5 +1,5 @@
 from os import makedirs
-
+import ipdb
 import os
 import logging
 import time
@@ -9,8 +9,8 @@ import torch
 import torch.nn as nn
 import dataset
 
-def learning_rate_with_decay(batch_size, batch_denom, batches_per_epoch, boundary_epochs, decay_rates):
-    initial_learning_rate = args.lr * batch_size / batch_denom
+def learning_rate_with_decay(lr, batch_size, batch_denom, batches_per_epoch, boundary_epochs, decay_rates):
+    initial_learning_rate =  lr * batch_size / batch_denom
 
     boundaries = [int(batches_per_epoch * epoch) for epoch in boundary_epochs]
     vals = [initial_learning_rate * decay for decay in decay_rates]
@@ -28,14 +28,15 @@ def one_hot(x, K):
 
 
 def accuracy(model, dataset_loader):
-    total_correct = 0
-    for x, y in dataset_loader:
-        x = x.to(device)
-        y = one_hot(np.array(y.numpy()), 10)
-
-        target_class = np.argmax(y, axis=1)
-        predicted_class = np.argmax(model(x).cpu().detach().numpy(), axis=1)
-        total_correct += np.sum(predicted_class == target_class)
+    with torch.no_grad():
+        total_correct = 0
+        for x, y in dataset_loader:
+            if torch.cuda.is_available():
+                x = x.cuda()
+            y = one_hot(np.array(y.numpy()), 10)
+            target_class = np.argmax(y, axis=1)
+            predicted_class = np.argmax(model(x).cpu().detach().numpy(), axis=1)
+            total_correct += np.sum(predicted_class == target_class)
     return total_correct / len(dataset_loader.dataset)
 
 
@@ -105,7 +106,7 @@ def inf_generator(iterable):
 
 
 
-def train_odenet(model, train_loader, number_epochs, batch_size, lr, logger, save_dir):
+def train_odenet(model, train_loader, train_eval_loader, test_loader, num_epochs, batch_size, lr, logger, save_dir, val_break_threshold=0.98):
 
     logger.info(model)
     logger.info('Number of parameters: {}'.format(count_parameters(model)))
@@ -115,7 +116,7 @@ def train_odenet(model, train_loader, number_epochs, batch_size, lr, logger, sav
     batches_per_epoch = len(train_loader)
 
     lr_fn = learning_rate_with_decay(
-        batch_size, batch_denom=128, batches_per_epoch=batches_per_epoch, boundary_epochs=[60, 100, 140],
+        lr, batch_size, batch_denom=128, batches_per_epoch=batches_per_epoch, boundary_epochs=[60, 100, 140],
         decay_rates=[1, 0.1, 0.01, 0.001]
     )
 
@@ -126,7 +127,7 @@ def train_odenet(model, train_loader, number_epochs, batch_size, lr, logger, sav
     b_nfe_meter = RunningAverageMeter()
     end = time.time()
 
-    for itr in range(number_epochs * batches_per_epoch):
+    for itr in range(num_epochs * batches_per_epoch):
 
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr_fn(itr)
@@ -136,6 +137,7 @@ def train_odenet(model, train_loader, number_epochs, batch_size, lr, logger, sav
         if torch.cuda.is_available():
             x = x.cuda()
             y = y.cuda()
+
         logits = model(x)
         loss = criterion(logits, y)
 
@@ -170,33 +172,57 @@ def train_odenet(model, train_loader, number_epochs, batch_size, lr, logger, sav
                         b_nfe_meter.avg, train_acc, val_acc
                     )
                 )
+                if val_acc > val_break_threshold:
+                    logger.info("Ending training early. Validation accuracy = {}".format(val_acc))
+                    return
 
 
 if __name__ == '__main__':
-    save_dir = './cache'
-    dataset_name = 'mnist'
-    batch_size = 128
+
+
+    dataset_name = 'cifar10'
+    # dataset_name = 'mnist'
+    save_dir = './cache/{}'.format(dataset_name)
+    logpath =  os.path.join(save_dir, 'logs')
+    if os.path.exists(logpath):
+        os.remove(logpath)
+
+    batch_size = 512
     test_batch_size = 1000
+    lr = 0.1
+    num_epochs = 180
+    train_batch_size = 128
+    
 
-
+    if dataset_name == 'mnist':
+        num_classes = 10
+        num_in_channels = 1
+        train_loader, test_loader, train_eval_loader = dataset.get_mnist_loaders(
+            True, batch_size, test_batch_size
+        )
+        val_break_threshold = 0.99
+    elif dataset_name == 'cifar10':
+        num_classes = 10
+        num_in_channels = 3
+        train_loader, test_loader, train_eval_loader = dataset.get_cifar_10(
+            True, batch_size, test_batch_size
+        )
+        val_break_threshold = 0.95
     makedirs(save_dir)
-    logger = get_logger(logpath=os.path.join(save_dir, 'logs'), filepath=os.path.abspath(__file__))
+    logger = get_logger(logpath=logpath, filepath=os.path.abspath(__file__))
 
 
-    model = OdeNet('conv')
+    model = OdeNet('conv', tolerance=0.001, num_classes=num_classes, num_in_channels=num_in_channels)
 
     logger.info(model)
     logger.info('Number of parameters: {}'.format(count_parameters(model)))
 
     criterion = nn.CrossEntropyLoss()
 
-    if dataset_name == 'mnist':
-        train_loader, test_loader, train_eval_loader = dataset.get_mnist_loaders(
-            False, batch_size, test_batch_size
-        )
-    elif dataset_name == ''
 
     data_gen = inf_generator(train_loader)
     batches_per_epoch = len(train_loader)
 
-    train_odenet(model, train_loader, 160, 128, 0.1, logger, save_dir)
+    train_odenet(model=model, train_loader=train_loader, train_eval_loader=train_eval_loader, test_loader=test_loader,
+                 num_epochs=num_epochs, batch_size=train_batch_size, lr=lr, logger=logger, save_dir=save_dir, val_break_threshold=val_break_threshold)
+
