@@ -156,8 +156,9 @@ def inf_generator(iterable):
             iterator = iterable.__iter__()
 
 
+
 class OdeNet(nn.Module):
-    def __init__(self, downsampling_method, tolerance, num_classes, num_in_channels):
+    def __init__(self, downsampling_method, tolerance, num_classes, num_in_channels, hidden_channels=64):
         """
         Images must be num_in_channels x 32 x 32
 
@@ -169,13 +170,13 @@ class OdeNet(nn.Module):
         super(OdeNet, self).__init__()
         if downsampling_method == 'conv':
             self.downsampling_layers = [
-                nn.Conv2d(num_in_channels, 64, 3, 1),
-                norm(64),
+                nn.Conv2d(num_in_channels, hidden_channels, 3, 1),
+                norm(hidden_channels),
                 nn.ReLU(inplace=True),
-                nn.Conv2d(64, 64, 4, 2, 1),
-                norm(64),
+                nn.Conv2d(hidden_channels, hidden_channels, 4, 2, 1),
+                norm(hidden_channels),
                 nn.ReLU(inplace=True),
-                nn.Conv2d(64, 64, 4, 2, 1),
+                nn.Conv2d(hidden_channels, hidden_channels, 4, 2, 1),
             ]
         elif downsampling_method == 'res':
             self.downsampling_layers = [
@@ -183,17 +184,23 @@ class OdeNet(nn.Module):
                 ResBlock(64, 64, stride=2, downsample=conv1x1(64, 64, 2)),
                 ResBlock(64, 64, stride=2, downsample=conv1x1(64, 64, 2)),
             ]
+        elif downsampling_method == 'squeeze':
+            self.downsampling_layers = [
+                nn.Conv2d(num_in_channels, hidden_channels, 1, 1),
+                norm(hidden_channels),
+                nn.ReLU(inplace=True)
+            ]
         else:
             raise RuntimeError('downsampling_method must be conv or res')
         self.tolerance = tolerance
-        self.feature_layers = [ODEBlock(ODEfunc(64), self.tolerance)]
-        self.fc_layers = [norm(64), nn.ReLU(inplace=True), nn.AdaptiveAvgPool2d((1, 1)), Flatten(), nn.Linear(64, num_classes)]
+        self.feature_layers = [ODEBlock(ODEfunc(hidden_channels), self.tolerance)]
+        self.fc_layers = [norm(hidden_channels), nn.ReLU(inplace=True), nn.AdaptiveAvgPool2d((1, 1)), Flatten(), nn.Linear(hidden_channels, num_classes)]
         self.seq = nn.Sequential(*self.downsampling_layers, *self.feature_layers, *self.fc_layers)
         if torch.cuda.is_available():
             self.cuda()
 
     def parameters(self, recurse=True):
-        return self.seq.parameters(recurse)
+        return self.seq.parameters()
 
     def forward(self, x):
         # y = self.downsampling_layers(input)

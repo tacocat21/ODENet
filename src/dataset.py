@@ -45,6 +45,7 @@ def get_cifar_10(data_aug=False, batch_size=128, test_batch_size=1000):
         ])
     else:
         transform_train = transforms.Compose([
+            transforms.Resize(224),
             transforms.ToTensor(),
         ])
 

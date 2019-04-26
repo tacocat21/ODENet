@@ -186,13 +186,14 @@ if __name__ == '__main__':
     # optimizer_type = 'sgd'
     optimizer_type = 'adam'
     # dataset_name = 'mnist'
+    downsampling_method = 'squeeze'
     batch_size = 512
     test_batch_size = 1000
     lr = 0.0001
     num_epochs = 180
     train_batch_size = 128
 
-    save_dir = './cache/{}/{}/{}'.format(dataset_name, optimizer_type, lr)
+    save_dir = './cache/{}/{}/{}/{}'.format(dataset_name, downsampling_method, optimizer_type, lr)
     logpath =  os.path.join(save_dir, 'logs')
     if os.path.exists(logpath):
         os.remove(logpath)
@@ -217,7 +218,7 @@ if __name__ == '__main__':
     logger = get_logger(logpath=logpath, filepath=os.path.abspath(__file__))
 
 
-    model = OdeNet('conv', tolerance=0.001, num_classes=num_classes, num_in_channels=num_in_channels)
+    model = OdeNet(downsampling_method, tolerance=0.001, num_classes=num_classes, num_in_channels=num_in_channels)
 
     logger.info(model)
     logger.info('Number of parameters: {}'.format(count_parameters(model)))
