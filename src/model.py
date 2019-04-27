@@ -186,9 +186,15 @@ class OdeNet(nn.Module):
             ]
         elif downsampling_method == 'squeeze':
             self.downsampling_layers = [
-                nn.Conv2d(num_in_channels, hidden_channels, 1, 1),
+                nn.Conv2d(num_in_channels, hidden_channels, kernel_size=1, stride=1),
                 norm(hidden_channels),
-                nn.ReLU(inplace=True)
+                nn.ReLU(inplace=True),
+                nn.MaxPool2d(kernel_size=3, stride=2),
+                nn.Conv2d(hidden_channels, hidden_channels, kernel_size=1, stride=2),
+                norm(hidden_channels),
+                nn.ReLU(inplace=True),
+                # nn.MaxPool2d(kernel_size=3, stride=2)
+
             ]
         else:
             raise RuntimeError('downsampling_method must be conv or res')

@@ -186,11 +186,11 @@ if __name__ == '__main__':
     # optimizer_type = 'sgd'
     optimizer_type = 'adam'
     # dataset_name = 'mnist'
-    downsampling_method = 'squeeze'
-    batch_size = 512
-    test_batch_size = 1000
-    lr = 0.0001
-    num_epochs = 180
+    downsampling_method = 'conv'
+    batch_size = 128
+    test_batch_size = 250
+    lr = 0.01
+    num_epochs = 300
     train_batch_size = 128
 
     save_dir = './cache/{}/{}/{}/{}'.format(dataset_name, downsampling_method, optimizer_type, lr)
@@ -228,7 +228,8 @@ if __name__ == '__main__':
 
     data_gen = inf_generator(train_loader)
     batches_per_epoch = len(train_loader)
-
+    if torch.cuda.is_available():
+        print('memory used = {}'.format(torch.cuda.memory_cached()))
     train_odenet(model=model, train_loader=train_loader, train_eval_loader=train_eval_loader, test_loader=test_loader,
                  num_epochs=num_epochs, batch_size=train_batch_size, lr=lr, logger=logger, save_dir=save_dir, val_break_threshold=val_break_threshold,
                  optimizer_type=optimizer_type)
