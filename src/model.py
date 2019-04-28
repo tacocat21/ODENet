@@ -215,7 +215,7 @@ class OdeNet(nn.Module):
         return itertools.chain(self.downsampling_layers.parameters(), self.feature_layers.parameters(), self.fc_layers.parameters())
 
     def forward(self, x):
-        ipdb.set_trace()
+        # ipdb.set_trace()
         y = self.downsampling_layers(x)
         y = self.feature_layers(y)
         # y = y.view(x.size(0), self.hidden_channels, -1)

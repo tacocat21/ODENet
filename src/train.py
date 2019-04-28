@@ -139,7 +139,7 @@ def train_odenet(model, train_loader, train_eval_loader, test_loader, num_epochs
         if torch.cuda.is_available():
             x = x.cuda()
             y = y.cuda()
-        ipdb.set_trace()
+        # ipdb.set_trace()
         logits = model(x)
         loss = criterion(logits, y)
 
