@@ -199,7 +199,8 @@ class OdeNet(nn.Module):
         else:
             raise RuntimeError('downsampling_method must be conv or res')
         self.tolerance = tolerance
-        feature_layers = [ODEBlock(ODEfunc(hidden_channels), self.tolerance)]
+        feature_layers = [ODEBlock(ODEfunc(hidden_channels), self.tolerance), nn.Conv2d(hidden_channels, hidden_channels, 3, 2), nn.MaxPool2d(3, 2),
+                          norm(hidden_channels), nn.ReLU(inplace=True)]
         fc_layers = [norm(hidden_channels), nn.ReLU(inplace=True), nn.AdaptiveAvgPool2d((1, 1)), Flatten(), nn.Linear(hidden_channels, num_classes)]
         # self.seq = nn.Sequential(*self.downsampling_layers, *self.feature_layers, *self.fc_layers)
         self.downsampling_layers = nn.Sequential(*downsampling_layers)
@@ -217,7 +218,7 @@ class OdeNet(nn.Module):
         ipdb.set_trace()
         y = self.downsampling_layers(x)
         y = self.feature_layers(y)
-        y = y.view(x.size(0), self.hidden_channels, -1)
+        # y = y.view(x.size(0), self.hidden_channels, -1)
         y = self.fc_layers(y)
         return y
         # return self.seq(x)
