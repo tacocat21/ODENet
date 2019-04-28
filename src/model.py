@@ -1,5 +1,5 @@
 # most code from https://github.com/rtqichen/torchdiffeq/
-
+import ipdb
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -169,7 +169,7 @@ class OdeNet(nn.Module):
         """
         super(OdeNet, self).__init__()
         if downsampling_method == 'conv':
-            self.downsampling_layers = [
+            downsampling_layers = [
                 nn.Conv2d(num_in_channels, hidden_channels, 3, 1),
                 norm(hidden_channels),
                 nn.ReLU(inplace=True),
@@ -179,13 +179,13 @@ class OdeNet(nn.Module):
                 nn.Conv2d(hidden_channels, hidden_channels, 4, 2, 1),
             ]
         elif downsampling_method == 'res':
-            self.downsampling_layers = [
+            downsampling_layers = [
                 nn.Conv2d(num_in_channels, 64, 3, 1),
                 ResBlock(64, 64, stride=2, downsample=conv1x1(64, 64, 2)),
                 ResBlock(64, 64, stride=2, downsample=conv1x1(64, 64, 2)),
             ]
         elif downsampling_method == 'squeeze':
-            self.downsampling_layers = [
+            downsampling_layers = [
                 nn.Conv2d(num_in_channels, hidden_channels, kernel_size=1, stride=1),
                 norm(hidden_channels),
                 nn.ReLU(inplace=True),
@@ -199,22 +199,28 @@ class OdeNet(nn.Module):
         else:
             raise RuntimeError('downsampling_method must be conv or res')
         self.tolerance = tolerance
-        self.feature_layers = [ODEBlock(ODEfunc(hidden_channels), self.tolerance)]
-        self.fc_layers = [norm(hidden_channels), nn.ReLU(inplace=True), nn.AdaptiveAvgPool2d((1, 1)), Flatten(), nn.Linear(hidden_channels, num_classes)]
-        self.seq = nn.Sequential(*self.downsampling_layers, *self.feature_layers, *self.fc_layers)
+        feature_layers = [ODEBlock(ODEfunc(hidden_channels), self.tolerance)]
+        fc_layers = [norm(hidden_channels), nn.ReLU(inplace=True), nn.AdaptiveAvgPool2d((1, 1)), Flatten(), nn.Linear(hidden_channels, num_classes)]
+        # self.seq = nn.Sequential(*self.downsampling_layers, *self.feature_layers, *self.fc_layers)
+        self.downsampling_layers = nn.Sequential(*downsampling_layers)
+        self.feature_layers = nn.Sequential(*feature_layers)
+        self.fc_layers = nn.Sequential(*fc_layers)
         if torch.cuda.is_available():
             self.cuda()
+        self.hidden_channels = hidden_channels
 
     def parameters(self, recurse=True):
-        return self.seq.parameters()
+        # return self.seq.parameters()
+        return itertools.chain(self.downsampling_layers.parameters(), self.feature_layers.parameters(), self.fc_layers.parameters())
 
     def forward(self, x):
-        # y = self.downsampling_layers(input)
-        # y = self.feature_layers(y)
-        # y = y.view(input.size(0), -1)
-        # y = self.fc_layers(y)
-        # return y
-        return self.seq(x)
+        ipdb.set_trace()
+        y = self.downsampling_layers(x)
+        y = self.feature_layers(y)
+        y = y.view(x.size(0), self.hidden_channels, -1)
+        y = self.fc_layers(y)
+        return y
+        # return self.seq(x)
 
 
 
