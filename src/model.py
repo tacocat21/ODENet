@@ -216,10 +216,15 @@ class OdeNet(nn.Module):
 
     def forward(self, x):
         # ipdb.set_trace()
-        y = self.downsampling_layers(x)
-        y = self.feature_layers(y)
-        # y = y.view(x.size(0), self.hidden_channels, -1)
-        y = self.fc_layers(y)
+        try:
+            y = self.downsampling_layers(x)
+            y = self.feature_layers(y)
+            # y = y.view(x.size(0), self.hidden_channels, -1)
+            y = self.fc_layers(y)
+        except RuntimeError as err:
+            ipdb.set_trace()
+            print(err)
+
         return y
         # return self.seq(x)
 
