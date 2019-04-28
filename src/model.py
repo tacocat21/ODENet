@@ -200,7 +200,7 @@ class OdeNet(nn.Module):
             raise RuntimeError('downsampling_method must be conv or res')
         self.tolerance = tolerance
         feature_layers = [ODEBlock(ODEfunc(hidden_channels), self.tolerance), nn.Conv2d(hidden_channels, hidden_channels, 3, 2), nn.MaxPool2d(3, 2),
-                          norm(hidden_channels), nn.ReLU(inplace=True)]
+                          norm(hidden_channels), nn.ReLU(inplace=True), nn.Conv2d(hidden_channels, hidden_channels, 3, 2)]
         fc_layers = [norm(hidden_channels), nn.ReLU(inplace=True), nn.AdaptiveAvgPool2d((1, 1)), Flatten(), nn.Linear(hidden_channels, num_classes)]
         # self.seq = nn.Sequential(*self.downsampling_layers, *self.feature_layers, *self.fc_layers)
         self.downsampling_layers = nn.Sequential(*downsampling_layers)
