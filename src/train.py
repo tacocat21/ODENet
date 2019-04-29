@@ -5,7 +5,7 @@ import os
 import logging
 import time
 import numpy as np
-from model import OdeNet
+from model import OdeNet, OdeNet224
 import torch
 import torch.nn as nn
 import dataset
@@ -185,9 +185,8 @@ def parse():
     parser.add_argument('--lr', type=float, default=0.01)
     parser.add_argument('--batch_size', type=int, default=1000)
     parser.add_argument('--downsampling-method', type=str, default='conv', choices=['conv', 'res'])
-    parser.add_argument('--dataset', type=str, default='cifar10', choices=['cifar10', 'mnist'])
+    parser.add_argument('--dataset', type=str, default='stl10', choices=['cifar10', 'mnist', 'stl10'])
     parser.add_argument('--optimizer', type=str, default='adam', choices=['adam', 'sgd'])
-
     parser.add_argument('--nepochs', type=int, default=300)
     parser.add_argument('--tol', type=float, default=1e-3)
     return parser
@@ -235,11 +234,20 @@ if __name__ == '__main__':
             True, batch_size, test_batch_size
         )
         val_break_threshold = 0.95
+    elif dataset_name == 'stl10':
+        num_classes = 10
+        num_in_channels = 3
+        train_loader, test_loader, train_eval_loader = dataset.get_stl_10(
+            True, batch_size, test_batch_size
+        )
+        val_break_threshold = 0.90
+
     makedirs(save_dir)
     logger = get_logger(logpath=logpath, filepath=os.path.abspath(__file__))
     logger.info(args)
 
-    model = OdeNet(downsampling_method, tolerance=tolerance, num_classes=num_classes, num_in_channels=num_in_channels)
+    # model = OdeNet(downsampling_method, tolerance=tolerance, num_classes=num_classes, num_in_channels=num_in_channels)
+    model = OdeNet224(downsampling_method, tolerance=tolerance, num_classes=num_classes, num_in_channels=num_in_channels)
 
     logger.info(model)
     logger.info('Number of parameters: {}'.format(count_parameters(model)))

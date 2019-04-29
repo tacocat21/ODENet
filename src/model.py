@@ -230,5 +230,81 @@ class OdeNet(nn.Module):
 
         return y
 
+class OdeNet224(nn.Module):
+    def __init__(self, downsampling_method, tolerance, num_classes, num_in_channels, hidden_channels=64):
+        """
+        Images must be num_in_channels x 224 x 224
+
+        :param downsampling_method:
+        :param tolerance:
+        :param num_classes:
+        :param num_in_channels:
+        """
+        super(OdeNet, self).__init__()
+        post_feature_layer = []
+        if downsampling_method == 'conv':
+            downsampling_layers = [
+                nn.Conv2d(num_in_channels, hidden_channels, 3, 1),
+                norm(hidden_channels),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(hidden_channels, hidden_channels, 4, 2),
+                norm(hidden_channels),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(hidden_channels, hidden_channels, 4, 2)
+            ]
+            # downsampling_layers = downsampling_layers + post_feature_layer
+        elif downsampling_method == 'res':
+            downsampling_layers = [
+                nn.Conv2d(num_in_channels, 64, 3, 1),
+                ResBlock(64, 64, stride=2, downsample=conv1x1(64, 64, 2)),
+                ResBlock(64, 64, stride=2, downsample=conv1x1(64, 64, 2)),
+            ]
+        elif downsampling_method == 'squeeze':
+
+            downsampling_layers = [
+                nn.Conv2d(num_in_channels, hidden_channels, 1, 1),
+                norm(hidden_channels),
+                nn.ReLU(inplace=True),
+                nn.MaxPool2d(kernel_size=3, stride=2),
+                nn.Conv2d(hidden_channels, hidden_channels, kernel_size=1, stride=2),
+                norm(hidden_channels),
+                nn.ReLU(inplace=True),
+                # nn.MaxPool2d(kernel_size=3, stride=2)
+
+            ]
+        else:
+            raise RuntimeError('downsampling_method must be conv or res')
+        self.tolerance = tolerance
+        feature_layers = [ODEBlock(ODEfunc(hidden_channels), self.tolerance),
+                          nn.Conv2d(hidden_channels, hidden_channels, 3, 2),
+                          norm(hidden_channels),
+                          nn.ReLU(inplace=True),
+                          nn.MaxPool2d(3, 2),
+                          ODEBlock(ODEfunc(hidden_channels), self.tolerance)
+                          ]
+        fc_layers = [norm(hidden_channels), nn.ReLU(inplace=True), nn.AdaptiveAvgPool2d((1, 1)), Flatten(),
+                     nn.Linear(hidden_channels, num_classes)]
+        # self.seq = nn.Sequential(*self.downsampling_layers, *self.feature_layers, *self.fc_layers)
+        self.downsampling_layers = nn.Sequential(*downsampling_layers)
+        self.feature_layers = nn.Sequential(*feature_layers)
+        self.fc_layers = nn.Sequential(*fc_layers)
+        if torch.cuda.is_available():
+            self.cuda()
+        self.hidden_channels = hidden_channels
+
+    def parameters(self, recurse=True):
+        # return self.seq.parameters()
+        return itertools.chain(self.downsampling_layers.parameters(), self.feature_layers.parameters(),
+                               self.fc_layers.parameters())
+
+    def forward(self, x):
+        ipdb.set_trace()
+        y = self.downsampling_layers(x)
+        y = self.feature_layers(y)
+        # y = y.view(x.size(0), self.hidden_channels, -1)
+        y = self.fc_layers(y)
+
+        return y
+
 
 

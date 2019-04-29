@@ -67,3 +67,40 @@ def get_cifar_10(data_aug=False, batch_size=128, test_batch_size=1000):
     )
 
     return train_loader, test_loader, train_eval_loader
+
+def get_stl_10(data_aug=False, batch_size=128, test_batch_size=1000):
+    if data_aug:
+        transform_train = transforms.Compose([
+            transforms.RandomRotation(15),
+            transforms.RandomHorizontalFlip(0.5),
+            transforms.Resize(234),
+            transforms.RandomCrop(224),
+            transforms.ToTensor(),
+        ])
+    else:
+        transform_train = transforms.Compose([
+            transforms.Resize(224),
+            transforms.ToTensor(),
+        ])
+
+    transform_test = transforms.Compose([
+        transforms.Resize(224),
+        transforms.ToTensor(),
+    ])
+
+    train_loader = DataLoader(
+        datasets.STL10(root='.data/stl10', split='train', download=True, transform=transform_train), batch_size=batch_size,
+        shuffle=True, num_workers=4, drop_last=True
+    )
+
+    train_eval_loader = DataLoader(
+        datasets.STL10(root='.data/stl10', split='train', download=True, transform=transform_test),
+        batch_size=test_batch_size, shuffle=False, num_workers=2, drop_last=True
+    )
+
+    test_loader = DataLoader(
+        datasets.STL10(root='.data/stl10', split='test', download=True, transform=transform_test),
+        batch_size=test_batch_size, shuffle=False, num_workers=2, drop_last=True
+    )
+
+    return train_loader, test_loader, train_eval_loader
