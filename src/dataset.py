@@ -41,14 +41,17 @@ def get_cifar_10(data_aug=False, batch_size=128, test_batch_size=1000):
             transforms.RandomRotation(15),
             transforms.RandomHorizontalFlip(0.5),
             transforms.ToTensor(),
+            transforms.Normalize([0.4914, 0.4822, 0.4465], [0.2023, 0.1994, 0.2010])
         ])
     else:
         transform_train = transforms.Compose([
             transforms.ToTensor(),
+            transforms.Normalize([0.4914, 0.4822, 0.4465], [0.2023, 0.1994, 0.2010])
         ])
 
     transform_test = transforms.Compose([
         transforms.ToTensor(),
+            transforms.Normalize([0.4914, 0.4822, 0.4465], [0.2023, 0.1994, 0.2010])
     ])
 
     train_loader = DataLoader(
@@ -76,16 +79,19 @@ def get_stl_10(data_aug=False, batch_size=128, test_batch_size=1000):
             transforms.Resize(234),
             transforms.RandomCrop(224),
             transforms.ToTensor(),
+            transforms.Normalize([0.4467, 0.4398, 0.4066], [0.2185, 0.2159, 0.2183])
         ])
     else:
         transform_train = transforms.Compose([
             transforms.Resize(224),
             transforms.ToTensor(),
+            transforms.Normalize([0.4467, 0.4398, 0.4066], [0.2185, 0.2159, 0.2183])
         ])
 
     transform_test = transforms.Compose([
         transforms.Resize(224),
         transforms.ToTensor(),
+        transforms.Normalize([0.4467, 0.4398, 0.4066], [0.2185, 0.2159, 0.2183])
     ])
 
     train_loader = DataLoader(
@@ -106,7 +112,10 @@ def get_stl_10(data_aug=False, batch_size=128, test_batch_size=1000):
     return train_loader, test_loader, train_eval_loader
 
 def get_mean_and_std(dataset):
-    '''Compute the mean and std value of dataset.'''
+    '''Compute the mean and std value of dataset.
+
+    code from: https://github.com/kuangliu/pytorch-cifar/blob/master/utils.py
+    '''
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True, num_workers=2)
     mean = torch.zeros(3)
     std = torch.zeros(3)
