@@ -38,15 +38,12 @@ def get_mnist_loaders(data_aug=False, batch_size=128, test_batch_size=1000):
 def get_cifar_10(data_aug=False, batch_size=128, test_batch_size=1000):
     if data_aug:
         transform_train = transforms.Compose([
-            transforms.Resize(240),
-            transforms.RandomCrop(224),
             transforms.RandomRotation(15),
             transforms.RandomHorizontalFlip(0.5),
             transforms.ToTensor(),
         ])
     else:
         transform_train = transforms.Compose([
-            transforms.Resize(224),
             transforms.ToTensor(),
         ])
 
