@@ -1,4 +1,5 @@
 from os import makedirs
+import argparse
 import ipdb
 import os
 import logging
@@ -116,8 +117,8 @@ def train_odenet(model, train_loader, train_eval_loader, test_loader, num_epochs
     batches_per_epoch = len(train_loader)
 
     lr_fn = learning_rate_with_decay(
-        lr, batch_size, batch_denom=128, batches_per_epoch=batches_per_epoch, boundary_epochs=[60, 100, 140],
-        decay_rates=[1, 0.1, 0.01, 0.001]
+        lr, batch_size, batch_denom=256, batches_per_epoch=batches_per_epoch, boundary_epochs=[60, 100, 140, 200, 250],
+        decay_rates=[1, 0.1, 0.01, 0.001, 0.0005, 0.0001]
     )
     if optimizer_type == 'sgd':
         optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
@@ -178,22 +179,42 @@ def train_odenet(model, train_loader, train_eval_loader, test_loader, num_epochs
                     logger.info("Ending training early. Validation accuracy = {}".format(val_acc))
                     return
 
+def parse():
+    parser = argparse.ArgumentParser(description='Train a ODEnet')
+    parser.add_argument('--save', type=str, default='./experiment1')
+    parser.add_argument('--lr', type=float, default=0.01)
+    parser.add_argument('--batch_size', type=int, default=1000)
+    parser.add_argument('--downsampling-method', type=str, default='conv', choices=['conv', 'res'])
+    parser.add_argument('--dataset', type=str, default='cifar10', choices=['cifar10', 'mnist'])
+    parser.add_argument('--optimizer', type=str, default='adam', choices=['adam', 'sgd'])
+
+    parser.add_argument('--nepochs', type=int, default=300)
+    parser.add_argument('--tol', type=float, default=1e-3)
+    return parser
 
 if __name__ == '__main__':
 
+    parser = parse()
+    args = parser.parse_args()
 
-    dataset_name = 'cifar10'
+    # dataset_name = 'cifar10'
+    dataset_name = args.dataset
     # optimizer_type = 'sgd'
-    optimizer_type = 'adam'
+    # optimizer_type = 'adam'
+    optimizer_type = args.optimizer
     # dataset_name = 'mnist'
-    downsampling_method = 'squeeze'
-    batch_size = 512
+    # downsampling_method = 'conv'
+    downsampling_method = args.downsampling_method
+    # batch_size = 1000
+    batch_size = args.batch_size
     test_batch_size = 1000
-    lr = 0.0001
-    num_epochs = 180
-    train_batch_size = 128
-
-    save_dir = './cache/{}/{}/{}/{}'.format(dataset_name, downsampling_method, optimizer_type, lr)
+    # lr = 0.005
+    lr = args.lr
+    # num_epochs = 300
+    num_epochs = args.nepochs
+    save_dir = args.save
+    tolerance = args.tol
+    # save_dir = './cache/{}/{}/{}/{}'.format(dataset_name, downsampling_method, optimizer_type, lr)
     logpath =  os.path.join(save_dir, 'logs')
     if os.path.exists(logpath):
         os.remove(logpath)
@@ -216,9 +237,9 @@ if __name__ == '__main__':
         val_break_threshold = 0.95
     makedirs(save_dir)
     logger = get_logger(logpath=logpath, filepath=os.path.abspath(__file__))
+    logger.info(args)
 
-
-    model = OdeNet(downsampling_method, tolerance=0.001, num_classes=num_classes, num_in_channels=num_in_channels)
+    model = OdeNet(downsampling_method, tolerance=tolerance, num_classes=num_classes, num_in_channels=num_in_channels)
 
     logger.info(model)
     logger.info('Number of parameters: {}'.format(count_parameters(model)))
@@ -230,6 +251,6 @@ if __name__ == '__main__':
     batches_per_epoch = len(train_loader)
 
     train_odenet(model=model, train_loader=train_loader, train_eval_loader=train_eval_loader, test_loader=test_loader,
-                 num_epochs=num_epochs, batch_size=train_batch_size, lr=lr, logger=logger, save_dir=save_dir, val_break_threshold=val_break_threshold,
+                 num_epochs=num_epochs, batch_size=batch_size, lr=lr, logger=logger, save_dir=save_dir, val_break_threshold=val_break_threshold,
                  optimizer_type=optimizer_type)
 
