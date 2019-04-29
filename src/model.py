@@ -184,9 +184,9 @@ class OdeNet(nn.Module):
             downsampling_layers = downsampling_layers + post_feature_layer
         elif downsampling_method == 'res':
             downsampling_layers = [
-                nn.Conv2d(num_in_channels, 64, 3, 1),
-                ResBlock(64, 64, stride=2, downsample=conv1x1(64, 64, 2)),
-                ResBlock(64, 64, stride=2, downsample=conv1x1(64, 64, 2)),
+                nn.Conv2d(num_in_channels, hidden_channels, 3, 1),
+                ResBlock(hidden_channels, hidden_channels, stride=2, downsample=conv1x1(hidden_channels, hidden_channels, 2)),
+                ResBlock(hidden_channels, hidden_channels, stride=2, downsample=conv1x1(hidden_channels, hidden_channels, 2)),
             ]
         elif downsampling_method == 'squeeze':
 
@@ -231,7 +231,7 @@ class OdeNet(nn.Module):
         return y
 
 class OdeNet224(nn.Module):
-    def __init__(self, downsampling_method, tolerance, num_classes, num_in_channels, hidden_channels=64):
+    def __init__(self, downsampling_method, tolerance, num_classes, num_in_channels, hidden_channels=hidden_channels):
         """
         Images must be num_in_channels x 224 x 224
 
@@ -240,7 +240,7 @@ class OdeNet224(nn.Module):
         :param num_classes:
         :param num_in_channels:
         """
-        super(OdeNet, self).__init__()
+        super(OdeNet224, self).__init__()
         post_feature_layer = []
         if downsampling_method == 'conv':
             downsampling_layers = [
@@ -255,9 +255,9 @@ class OdeNet224(nn.Module):
             # downsampling_layers = downsampling_layers + post_feature_layer
         elif downsampling_method == 'res':
             downsampling_layers = [
-                nn.Conv2d(num_in_channels, 64, 3, 1),
-                ResBlock(64, 64, stride=2, downsample=conv1x1(64, 64, 2)),
-                ResBlock(64, 64, stride=2, downsample=conv1x1(64, 64, 2)),
+                nn.Conv2d(num_in_channels, hidden_channels, 3, 1),
+                ResBlock(hidden_channels, hidden_channels, stride=2, downsample=conv1x1(hidden_channels, hidden_channels, 2)),
+                ResBlock(hidden_channels, hidden_channels, stride=2, downsample=conv1x1(hidden_channels, hidden_channels, 2)),
             ]
         elif downsampling_method == 'squeeze':
 
@@ -276,11 +276,12 @@ class OdeNet224(nn.Module):
             raise RuntimeError('downsampling_method must be conv or res')
         self.tolerance = tolerance
         feature_layers = [ODEBlock(ODEfunc(hidden_channels), self.tolerance),
-                          nn.Conv2d(hidden_channels, hidden_channels, 3, 2),
-                          norm(hidden_channels),
-                          nn.ReLU(inplace=True),
+                          ResBlock(hidden_channels, hidden_channels, stride=2,
+                                   downsample=conv1x1(hidden_channels, hidden_channels, 2)),
                           nn.MaxPool2d(3, 2),
-                          ODEBlock(ODEfunc(hidden_channels), self.tolerance)
+                          ODEBlock(ODEfunc(hidden_channels), self.tolerance),
+                          ResBlock(hidden_channels, hidden_channels, stride=2,
+                                   downsample=conv1x1(hidden_channels, hidden_channels, 2)),
                           ]
         fc_layers = [norm(hidden_channels), nn.ReLU(inplace=True), nn.AdaptiveAvgPool2d((1, 1)), Flatten(),
                      nn.Linear(hidden_channels, num_classes)]
