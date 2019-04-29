@@ -280,8 +280,9 @@ class OdeNet224(nn.Module):
                                    downsample=conv1x1(hidden_channels, hidden_channels, 2)),
                           nn.MaxPool2d(3, 2),
                           ODEBlock(ODEfunc(hidden_channels), self.tolerance),
-                          ResBlock(hidden_channels, hidden_channels, stride=2,
-                                   downsample=conv1x1(hidden_channels, hidden_channels, 2)),
+                          norm(hidden_channels),
+                          nn.ReLU(inplace=True),
+                          nn.Conv2d(hidden_channels, hidden_channels, 3, 2)
                           ]
         fc_layers = [norm(hidden_channels), nn.ReLU(inplace=True), nn.AdaptiveAvgPool2d((1, 1)), Flatten(),
                      nn.Linear(hidden_channels, num_classes)]
@@ -299,7 +300,6 @@ class OdeNet224(nn.Module):
                                self.fc_layers.parameters())
 
     def forward(self, x):
-        ipdb.set_trace()
         y = self.downsampling_layers(x)
         y = self.feature_layers(y)
         # y = y.view(x.size(0), self.hidden_channels, -1)
