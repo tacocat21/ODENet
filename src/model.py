@@ -231,7 +231,7 @@ class OdeNet(nn.Module):
         return y
 
 class OdeNet224(nn.Module):
-    def __init__(self, downsampling_method, tolerance, num_classes, num_in_channels, hidden_channels=hidden_channels):
+    def __init__(self, downsampling_method, tolerance, num_classes, num_in_channels, hidden_channels=64):
         """
         Images must be num_in_channels x 224 x 224
 
