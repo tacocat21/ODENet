@@ -1,7 +1,7 @@
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 import torchvision.datasets as datasets
-
+import torch
 
 def get_mnist_loaders(data_aug=False, batch_size=128, test_batch_size=1000):
     if data_aug:
@@ -104,3 +104,25 @@ def get_stl_10(data_aug=False, batch_size=128, test_batch_size=1000):
     )
 
     return train_loader, test_loader, train_eval_loader
+
+def get_mean_and_std(dataset):
+    '''Compute the mean and std value of dataset.'''
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True, num_workers=2)
+    mean = torch.zeros(3)
+    std = torch.zeros(3)
+    print('==> Computing mean and std..')
+    for inputs, targets in dataloader:
+        for i in range(3):
+            mean[i] += inputs[:,i,:,:].mean()
+            std[i] += inputs[:,i,:,:].std()
+    mean.div_(len(dataset))
+    std.div_(len(dataset))
+    return mean, std
+
+if __name__ == '__main__':
+    transform = transforms.Compose([
+            transforms.Resize(224),
+            transforms.ToTensor(),
+        ])
+    dataset = datasets.STL10(root='.data/stl10', split='train', download=True, transform=transform)
+    print(get_mean_and_std(dataset))
