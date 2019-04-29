@@ -4,10 +4,13 @@ import os
 import torch
 import torchvision
 import gc
-from model import OdeNet
+from model import OdeNet, OdeNet224
 import ipdb
 import skimage
+import torchvision.transforms as transforms
+import torchvision.datasets as datasets
 import torch.nn as nn
+from torch.utils.data import DataLoader
 
 class Metric:
     def __init__(self):
@@ -63,13 +66,27 @@ def sum_model_parameter_size(model):
         total += sys.getsizeof(p)
     return total
 
-if __name__ == '__main__':
-    def run_model():
-        OdeNet('conv', 0.001, 10, 3, 64)
-        test_img = None
+def forward(model, img):
+    res = model(img)
+    return res
 
-    ram_used = measure_function_difference(get_current_ram_used, OdeNet, ('conv', 0.001, 10, 3, 64))
+def measure_odenet_224():
+    ram_used = measure_function_difference(get_current_ram_used, OdeNet224, ('conv', 0.001, 10, 3, 64))
     print('ODENet (conv downsampling) ram used = {} bytes'.format(ram_used))
+
+
+
+if __name__ == '__main__':
+    transform_train = transforms.Compose([
+        transforms.Resize(224),
+        transforms.ToTensor(),
+    ])
+    model = OdeNet224('conv', 0.001, 10, 3, 64)
+
+    dataloader = DataLoader(datasets.STL10(root='.data/stl10', split='train', download=True, transform=transform_train), batch_size=64)
+    img = next(dataloader)
+    print(img.shape)
+    ram_used = measure_function_difference(get_current_ram_used, forward, (model, img))
     # ram_used = measure_function_difference(get_current_ram_used, OdeNet, ('squeeze', 0.001, 10, 3, 64))
     # print('ODENet (squeeze downsampling) ram used = {} bytes'.format(ram_used))
     # ram_used = measure_function_difference(get_current_ram_used, torchvision.models.resnet18, (False,))
