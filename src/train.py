@@ -147,6 +147,7 @@ def train_odenet(model, train_loader, train_eval_loader, test_loader, num_epochs
         # forward pass
         nfe_forward = model.feature_layers[0].nfe
         model.feature_layers[0].nfe = 0
+        
 
         loss.backward()
         optimizer.step()
@@ -167,6 +168,7 @@ def train_odenet(model, train_loader, train_eval_loader, test_loader, num_epochs
                 val_acc = accuracy(model, test_loader)
                 if val_acc > best_acc:
                     torch.save({'state_dict': model.state_dict()}, os.path.join(save_dir, 'model.pth'))
+                    torch.save(model, os.path.join(save_dir, 'model.bin'))
                     best_acc = val_acc
                 logger.info(
                     "Epoch {:04d} | Time {:.3f} ({:.3f}) | NFE-F {:.1f} | NFE-B {:.1f} | "
@@ -206,7 +208,7 @@ if __name__ == '__main__':
     downsampling_method = args.downsampling_method
     # batch_size = 1000
     batch_size = args.batch_size
-    test_batch_size = 1000
+    test_batch_size = 250
     # lr = 0.005
     lr = args.lr
     # num_epochs = 300
