@@ -118,17 +118,21 @@ if __name__ == '__main__':
     
     with torch.no_grad():
         if args.metric == 'memory-inference':
+            test = model(img) # run once to load the model
+            del test
             ram_used = measure_function_difference(get_current_ram_used, forward, (model, img))
             print("model {} used {} bytes to run {} images".format(args.model, ram_used, args.batch_size))
         if args.metric == 'time':
             n = 5
-
+            test = model(img) # run once to load the model
+            del test
             _time = measure_function_difference(time.time,run_n_times, (model, img, n))
             print(_time)
             print("model {} ran {} inferences in {}s. Avg time = {}s. Each batch has {} images".format(
                 args.model, n, _time, _time/n, args.batch_size))
-    # ram_used = measure_function_difference(get_current_ram_used, OdeNet, ('squeeze', 0.001, 10, 3, 64))
-    # print('ODENet (squeeze downsampling) ram used = {} bytes'.format(ram_used))
+        elif args.metric == 'memory-model':
+            ram_used = measure_function_difference(get_current_ram_used, OdeNet, ('squeeze', 0.001, 10, 3, 64))
+            print('ODENet (squeeze downsampling) ram used = {} bytes'.format(ram_used))
     # ram_used = measure_function_difference(get_current_ram_used, torchvision.models.resnet18, (False,))
     # print('Resnet ram used = {} bytes'.format(ram_used))
     # ram_used = measure_function_difference(get_current_ram_used, torchvision.models.squeezenet1_1, (False,))
