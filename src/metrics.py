@@ -55,7 +55,7 @@ def measure_function_difference(measurement_function, function_measured, functio
     # print(model)
     # model = OdeNet('conv', tolerance=0.001, num_classes=10, num_in_channels=3)
     after = measurement_function()
-    del model
+    # del model
     difference = after- before
     # print("model size = {} bytes".format(model_size))
     return difference
@@ -79,7 +79,9 @@ def measure_odenet_224():
 def run_n_times(model, img, n):
     for i in range(n):
         y = model(img)
-    return y
+        del y
+        y = None
+    return None
 
 def parse():
     parser = argparse.ArgumentParser(description='Measure memory or time to run network')
@@ -108,19 +110,21 @@ if __name__ == '__main__':
     elif args.batch_size == 32:
         img, label = torch.load('test/test_32')
     print(img.shape)
-
+    print(args.batch_size)
     # load pytorch overhead
     preload = torch.tensor([1])
     preload2 = torch.tensor([3])
     preload = preload + preload2
-
+    
     with torch.no_grad():
         if args.metric == 'memory-inference':
             ram_used = measure_function_difference(get_current_ram_used, forward, (model, img))
             print("model {} used {} bytes to run {} images".format(args.model, ram_used, args.batch_size))
         if args.metric == 'time':
-            n = 50
+            n = 5
+
             _time = measure_function_difference(time.time,run_n_times, (model, img, n))
+            print(_time)
             print("model {} ran {} inferences in {}s. Avg time = {}s. Each batch has {} images".format(
                 args.model, n, _time, _time/n, args.batch_size))
     # ram_used = measure_function_difference(get_current_ram_used, OdeNet, ('squeeze', 0.001, 10, 3, 64))
