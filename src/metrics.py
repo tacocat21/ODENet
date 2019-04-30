@@ -121,7 +121,7 @@ if __name__ == '__main__':
             ram_used = measure_function_difference(get_current_ram_used, forward, (model, img))
             print("model {} used {} bytes to run {} images".format(args.model, ram_used, args.batch_size))
         elif args.metric == 'time':
-            n = 25
+            n = 10
             test = model(img) # run once to load the model
             del test
             _time = measure_function_difference(time.time,run_n_times, (model, img, n))
