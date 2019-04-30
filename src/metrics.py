@@ -77,16 +77,19 @@ def measure_odenet_224():
 
 
 if __name__ == '__main__':
-    transform_train = transforms.Compose([
-        transforms.Resize(224),
-        transforms.ToTensor(),
-    ])
-    model = OdeNet224('conv', 0.001, 10, 3, 64)
+    #transform_train = transforms.Compose([
+    #    transforms.Resize(224),
+    #    transforms.ToTensor(),
+    #])
+    model = OdeNet224('res', 0.001, 10, 3, 64)
 
-    dataloader = DataLoader(datasets.STL10(root='.data/stl10', split='train', download=True, transform=transform_train), batch_size=64)
-    img = next(dataloader)
+    #dataloader = DataLoader(datasets.STL10(root='.data/stl10', split='train', download=True, transform=transform_train), batch_size=64)
+    img, label = torch.load('single_test')
+    if len(img.shape) < 4:
+        img = img.view(1, 3, 224,224)
     print(img.shape)
     ram_used = measure_function_difference(get_current_ram_used, forward, (model, img))
+    print(ram_used)
     # ram_used = measure_function_difference(get_current_ram_used, OdeNet, ('squeeze', 0.001, 10, 3, 64))
     # print('ODENet (squeeze downsampling) ram used = {} bytes'.format(ram_used))
     # ram_used = measure_function_difference(get_current_ram_used, torchvision.models.resnet18, (False,))
