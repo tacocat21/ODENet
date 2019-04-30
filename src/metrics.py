@@ -88,7 +88,7 @@ def parse():
     parser.add_argument('--model', type=str, default='ode', choices=['ode', 'squeeze'])
     parser.add_argument('--downsampling-method', type=str, default='conv', choices=['conv', 'res'])
     parser.add_argument('--tol', type=float, default=1e-3)
-    parser.add_argument()
+
     return parser
 
 if __name__ == '__main__':
@@ -96,9 +96,10 @@ if __name__ == '__main__':
     args = parser.parse_args()
     if args.model == 'ode' and args.metric != 'memory-model':
         model = OdeNet224(args.downsampling_method, args.tol, 10, 3, 64)
+        model.eval()
     elif args.model == 'squeeze' and args.metric != 'memory-model':
         model = torchvision.models.squeezenet1_1(False)
-
+        model.eval()
     if args.batch_size == 1:
         img, label = torch.load('test/test_1')
         img = img.view(1, 3, 224,224)
@@ -113,14 +114,15 @@ if __name__ == '__main__':
     preload2 = torch.tensor([3])
     preload = preload + preload2
 
-    if args.metric == 'memory-inference':
-        ram_used = measure_function_difference(get_current_ram_used, forward, (model, img))
-        print("model {} used {} bytes to run {} images".format(args.model, ram_used, args.batch_size))
-    if args.metric == 'time':
-        n = 50
-        _time = measure_function_difference(time.time,run_n_times, (model, img, n))
-        print("model {} ran {} inferences in {}s. Avg time = {}s. Each batch has {} images".format(
-            args.model, n, _time, _time/n, args.batch_size))
+    with torch.no_grad():
+        if args.metric == 'memory-inference':
+            ram_used = measure_function_difference(get_current_ram_used, forward, (model, img))
+            print("model {} used {} bytes to run {} images".format(args.model, ram_used, args.batch_size))
+        if args.metric == 'time':
+            n = 50
+            _time = measure_function_difference(time.time,run_n_times, (model, img, n))
+            print("model {} ran {} inferences in {}s. Avg time = {}s. Each batch has {} images".format(
+                args.model, n, _time, _time/n, args.batch_size))
     # ram_used = measure_function_difference(get_current_ram_used, OdeNet, ('squeeze', 0.001, 10, 3, 64))
     # print('ODENet (squeeze downsampling) ram used = {} bytes'.format(ram_used))
     # ram_used = measure_function_difference(get_current_ram_used, torchvision.models.resnet18, (False,))
