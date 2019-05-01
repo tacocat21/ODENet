@@ -87,7 +87,7 @@ def parse():
     parser = argparse.ArgumentParser(description='Measure memory or time to run network')
     parser.add_argument('--metric', type=str, default='memory', choices=['memory-model', 'memory-inference', 'time'], required=True)
     parser.add_argument('--batch-size', type=int, default=1, choices=[1, 10, 32])
-    parser.add_argument('--model', type=str, default='ode', choices=['ode', 'squeeze'])
+    parser.add_argument('--model', type=str, default='ode224', choices=['ode224', 'ode', 'squeeze'])
     parser.add_argument('--downsampling-method', type=str, default='conv', choices=['conv', 'res'])
     parser.add_argument('--tol', type=float, default=1e-3)
 
@@ -96,19 +96,27 @@ def parse():
 if __name__ == '__main__':
     parser = parse()
     args = parser.parse_args()
-    if args.model == 'ode' and args.metric != 'memory-model':
+    if args.model == 'ode224' and args.metric != 'memory-model':
         model = OdeNet224(args.downsampling_method, args.tol, 10, 3, 64)
         model.eval()
     elif args.model == 'squeeze' and args.metric != 'memory-model':
         model = torchvision.models.squeezenet1_1(False)
         model.eval()
-    if args.batch_size == 1:
-        img, label = torch.load('test/test_1')
-        img = img.view(1, 3, 224,224)
-    elif args.batch_size == 10:
-        img, label = torch.load('test/test_10')
-    elif args.batch_size == 32:
-        img, label = torch.load('test/test_32')
+    elif args.model == 'ode' and args.metric != 'memory-model':
+        model = OdeNet(args.downsampling_method, args.tol, 10, 3, 64)
+        model.eval()
+
+    if args.model == 'ode':
+        pass #TODO: load model from cifar
+        img, label = torch.load('test/cifar_1')
+    else:
+        if args.batch_size == 1:
+            img, label = torch.load('test/test_1')
+            img = img.view(1, 3, 224,224)
+        elif args.batch_size == 10:
+            img, label = torch.load('test/test_10')
+        elif args.batch_size == 32:
+            img, label = torch.load('test/test_32')
     print(img.shape)
     print(args.batch_size)
     # load pytorch overhead
@@ -118,8 +126,6 @@ if __name__ == '__main__':
     
     with torch.no_grad():
         if args.metric == 'memory-inference':
-            test = model(img) # run once to load the model
-            del test
             ram_used = measure_function_difference(get_current_ram_used, forward, (model, img))
             print("model {} used {} bytes to run {} images".format(args.model, ram_used, args.batch_size))
         if args.metric == 'time':
