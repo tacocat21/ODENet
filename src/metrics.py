@@ -83,11 +83,13 @@ def run_n_times(model, img, n):
         y = None
     return None
 
+
+
 def parse():
     parser = argparse.ArgumentParser(description='Measure memory or time to run network')
     parser.add_argument('--metric', type=str, default='memory', choices=['memory-model', 'memory-inference', 'time'], required=True)
     parser.add_argument('--batch-size', type=int, default=1, choices=[1, 10, 32])
-    parser.add_argument('--model', type=str, default='ode224', choices=['ode224', 'ode', 'squeeze'])
+    parser.add_argument('--model', type=str, default='ode224', choices=['ode224', 'ode', 'squeeze', 'inception'])
     parser.add_argument('--downsampling-method', type=str, default='conv', choices=['conv', 'res'])
     parser.add_argument('--tol', type=float, default=1e-3)
 
@@ -100,12 +102,14 @@ if __name__ == '__main__':
         model = OdeNet224(args.downsampling_method, args.tol, 10, 3, 64)
         model.eval()
     elif args.model == 'squeeze' and args.metric != 'memory-model':
-        model = torchvision.models.squeezenet1_1(False)
+        model = torchvision.models.SqueezeNet(version=1.1, num_classes=10)
         model.eval()
     elif args.model == 'ode' and args.metric != 'memory-model':
         model = OdeNet(args.downsampling_method, args.tol, 10, 3, 64)
         model.eval()
-
+    elif args.model == 'inception' and args.metric != 'memory-model':
+        model = torchvision.models.inception_v3(False, num_classes=10)
+        model.eval()
     if args.model == 'ode':
         pass #TODO: load model from cifar
         img, label = torch.load('test/cifar_1')
